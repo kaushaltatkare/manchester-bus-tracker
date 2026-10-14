@@ -12,3 +12,5 @@ bus_pos = estimate_delays(live, tt)
 print("Fresh live vehicles:", len(live))
 print("Buses with a trusted delay:", len(bus_pos))
 print("Typical delay: {:.1f} min".format(bus_pos["delay_min"].median()))
+from app.board import live_departures
+print(live_departures(tt, "Oxford Road", bus_pos))
