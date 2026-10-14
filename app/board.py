@@ -22,7 +22,7 @@ def live_departures(
     when = when or datetime.now()
     now_secs = when.hour * 3600 + when.minute * 60 + when.second
 
-    stop_ids = tt.find_stops(stop_name)["stop_id"]
+    stop_ids = tt.stops_named(stop_name)
     trips_today = tt.trips[tt.trips["service_id"].isin(tt.services_on(when.date()))]
 
     st = tt.stop_times

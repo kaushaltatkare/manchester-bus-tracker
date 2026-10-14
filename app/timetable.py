@@ -36,6 +36,11 @@ class Timetable:
         """Search stops by name (not case-sensitive)."""
         matches = self.stops[self.stops["stop_name"].str.contains(name, case=False, na=False)]
         return matches[["stop_id", "stop_name", "stop_lat", "stop_lon"]]
+    
+    def stops_named(self, exact_name: str) -> pd.Series:
+        """stop_ids whose name matches exactly (not case-sensitive)."""
+        mask = self.stops["stop_name"].str.lower() == exact_name.lower()
+        return self.stops.loc[mask, "stop_id"]
 
     def services_on(self, day: date) -> set:
         """Service IDs running on a date, including bank holiday exceptions."""
