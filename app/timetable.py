@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.geo import distance_m
+
 # Paths work no matter where you run the code from
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW = PROJECT_ROOT / "data" / "raw" / "itm_north_west_gtfs"
@@ -36,11 +38,19 @@ class Timetable:
         """Search stops by name (not case-sensitive)."""
         matches = self.stops[self.stops["stop_name"].str.contains(name, case=False, na=False)]
         return matches[["stop_id", "stop_name", "stop_lat", "stop_lon"]]
-    
+
     def stops_named(self, exact_name: str) -> pd.Series:
         """stop_ids whose name matches exactly (not case-sensitive)."""
         mask = self.stops["stop_name"].str.lower() == exact_name.lower()
         return self.stops.loc[mask, "stop_id"]
+
+    def nearby_stops(self, lat: float, lon: float, limit: int = 5) -> pd.DataFrame:
+        """Closest stop names to a GPS position, nearest first."""
+        s = self.stops.copy()
+        s["distance_m"] = distance_m(lat, lon, s["stop_lat"], s["stop_lon"])
+        nearest = s.groupby("stop_name", as_index=False)["distance_m"].min()
+        nearest["distance_m"] = nearest["distance_m"].round().astype(int)
+        return nearest.sort_values("distance_m").head(limit)
 
     def services_on(self, day: date) -> set:
         """Service IDs running on a date, including bank holiday exceptions."""

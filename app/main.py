@@ -44,6 +44,12 @@ def search_stops(name: str):
     return names.head(20).to_dict(orient="records")
 
 
+@app.get("/stops/nearby")
+def stops_nearby(lat: float, lon: float, limit: int = 5):
+    """Closest stops to a location, e.g. /stops/nearby?lat=53.4807&lon=-2.2365"""
+    return tt.nearby_stops(lat, lon, limit).to_dict(orient="records")
+
+
 @app.get("/departures")
 def departures(stop: str, limit: int = 10):
     """Next departures from an exact stop name, e.g. /departures?stop=Oxford Road"""
