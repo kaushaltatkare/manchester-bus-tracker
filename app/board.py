@@ -17,8 +17,9 @@ def live_departures(
     bus_pos: pd.DataFrame,
     limit: int = 10,
     when: datetime | None = None,
+    to: str | None = None,
 ) -> pd.DataFrame:
-    """Next departures from every stop matching a name."""
+    """Next departures from a stop, optionally only buses going to a place."""
     when = when or datetime.now()
     now_secs = when.hour * 3600 + when.minute * 60 + when.second
 
@@ -33,6 +34,15 @@ def live_departures(
         & (~st["is_last_stop"])
     ]
 
+    # Optional: only buses that LATER stop somewhere matching `to`
+    if to:
+        exact = tt.stops_named(to)
+        dest_ids = exact if not exact.empty else tt.find_stops(to)["stop_id"]
+        dest = st.loc[st["stop_id"].isin(dest_ids), ["trip_id", "stop_sequence"]]
+        dest = dest.rename(columns={"stop_sequence": "dest_seq"})
+        deps = deps.merge(dest, on="trip_id")
+        deps = deps[deps["dest_seq"] > deps["stop_sequence"]]
+
     deps = deps.merge(bus_pos, on="trip_id", how="left")
     deps = deps[deps["bus_at_seq"].isna() | (deps["stop_sequence"] >= deps["bus_at_seq"])].copy()
 
@@ -43,10 +53,13 @@ def live_departures(
     deps = deps.merge(trips_today[["trip_id", "route_id", "trip_headsign"]], on="trip_id")
     deps = deps.merge(tt.routes[["route_id", "route_short_name"]], on="route_id")
 
+    # Which stand: the exact stop's location, so a map can show where to walk
+    deps = deps.merge(tt.stops[["stop_id", "stop_lat", "stop_lon"]], on="stop_id")
+
     deps = deps.sort_values("real_secs").drop_duplicates("trip_id").head(limit)
     deps["time"] = deps["real_secs"].apply(secs_to_hhmm)
     deps["due_in_min"] = (deps["real_secs"] - now_secs) // 60
 
     return deps.rename(columns={"route_short_name": "route", "trip_headsign": "to"})[
-        ["route", "to", "time", "due_in_min", "live"]
+        ["route", "to", "time", "due_in_min", "live", "stop_id", "stop_lat", "stop_lon"]
     ].reset_index(drop=True)

@@ -51,9 +51,10 @@ def stops_nearby(lat: float, lon: float, limit: int = 5):
 
 
 @app.get("/departures")
-def departures(stop: str, limit: int = 10):
-    """Next departures from an exact stop name, e.g. /departures?stop=Oxford Road"""
+def departures(stop: str, to: str | None = None, limit: int = 10):
+    """Next departures from an exact stop name.
+    e.g. /departures?stop=Piccadilly Gardens&to=Trafford"""
     if tt.stops_named(stop).empty:
         raise HTTPException(status_code=404, detail=f"No stop named '{stop}'. Try /stops/search first.")
-    board = live_departures(tt, stop, get_bus_pos(), limit=limit)
+    board = live_departures(tt, stop, get_bus_pos(), limit=limit, to=to)
     return board.to_dict(orient="records")
